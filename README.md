@@ -1,61 +1,64 @@
-# Kotte
+# Bomberman World — [your game title]
 
-Kotte is a small C++ game engine and teaching project built with [raylib](https://www.raylib.com/).
+**Student:** [your name]
 
-It is a work in progress currently being developed for the course [Scalable Game Worlds in C++](https://www.uu.se/en/study/syllabus?query=6751b031-a906-11f0-b7df-f9101f074b4e) at Uppsala University.
+> Replace the prompts below and remove these instructions. Keep answers brief. Your implementation explanations and reflection belong in the presentation; you do not need to write them out here. Complete the final section only if seeking Pass with Distinction (VG).
 
-The project uses C++26, raylib 6.0, and the C++ standard library to explore scalable game architecture and implementation. Each course week evolves one cumulative tile world in response to an observable scaling problem.
+## How to play
 
-## Requirements
+- **Controls:** [movement, bombs, restart, and any extension controls]
+- **Objective and rules:** [how to win/lose; which result wins if both happen together; any extension rules needed to understand the game]
+- **Configurations / demo setup:** [how to select gameplay/stress configurations and use any special setup or debug keys; write “default” where appropriate]
 
-* Visual Studio Community 2026
-* raylib 6.0
+## Features and validation
 
-## Current demo
+(delete this pre-amble before submitting the assignment) Complete the five required features and three extensions of your choice. For each row, document **at least one useful check: what you tested, what you observed, and how the result compares with the expected behaviour**. One or two sentences per feature are enough. Choose a check that could reveal a mistake, such as a boundary case or interaction.
 
-Run the x64 Debug or Release configuration. Move the player with WASD or the arrow keys, and quit with Q or Escape.
+Use the practical checks in the assignment to validate the acceptance conditions during development; this table is a small sample of that work. Manual play in a small, repeatable setup is sufficient. You can also use a debugger, temporary logging, or small scenarios set up in code. Screenshots, recordings, automated tests etc are welcome, but not required. Be ready to explain the relevant rules in your code.
 
-The Week 5 demo contains a few thousand fixed-lifetime player, bomb, crate, and enemy entities in the 200 by 120 tile world. The player moves continuously in world pixels, and every enemy wanders in one of the four cardinal directions. The raw Bombman sprites are not loaded yet; coloured primitives keep this stage focused on architecture.
+| Feature | Check, observed result, and expected behaviour |
+| --- | --- |
+| 1. Player damage and death | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| 2. Round states and objective | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| 3. Safe restart | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| 4. Solid bombs with owner escape | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| 5. Blast-range pickup | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| [# and name of chosen extension 1] | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| [# and name of chosen extension 2] | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| [# and name of chosen extension 3] | [what I tested, what I observed, and whether it matched the expected behaviour] |
 
-The entity vector owns each world entity exactly once. A separate 25 by 15 uniform grid covers the 8,000 by 4,800 pixel world with 320-pixel cells. Each cell stores non-owning entity indices for every entity whose complete world bounds overlap that cell. These indices are safe under the current fixed-lifetime rule: the entity vector is not erased, reordered, or structurally changed during play.
+Example: “I ended a round with live bombs and restarted three times to check that old-round state was cleared. No old explosions appeared, and bomb capacity reset each time.” Report your actual results, including any failures or remaining limitations; stating that something “works” does not describe a check.
 
-Collision reuses the same grid independently of the camera. For each proposed player axis or enemy movement, Kotte first checks the room boundary and then queries only the cells touched by the proposed gameplay collision rectangle. The spatial result is a broad-phase candidate list, not a collision answer: Kotte removes the moving entity and non-solid kinds before exact-testing the remaining candidates' collision rectangles.
+**Known issues:** [remaining problems and how to encounter them, or “None known after testing”]
 
-Gameplay collision footprints are smaller lower rectangles around each entity's contact with the floor. The complete visual rectangles remain in the grid for conservative candidate selection and are still used for visibility and rendering. Keeping these representations separate prevents a crate's tall presentation shape from becoming an oversized collision obstacle.
+## Sources and assistance
 
-Players, crates, and enemies are solid. The inert bomb prototypes are non-solid so the filtering stage remains observable; active bomb placement and its more specific blocking rules are deferred. A player proposal into a crate or enemy rejects only that movement axis, which allows sliding along a clear axis. An enemy proposal into a crate, the player, another enemy, or the room boundary leaves the enemy in place and selects a different cardinal heading for the next update. Contact does not push, damage, destroy, or remove either entity.
+This project builds on the shared Kotte foundations.
 
-The player updates first and synchronizes its old and final visual bounds once after both axes. Kotte then visits a fixed `enemy_indices_` list in entity-vector order, regardless of camera visibility. Each enemy makes one movement attempt: an accepted move is synchronized in the spatial grid immediately so the next enemy sees its current location, while a blocked enemy turns without changing position or membership. This simple sequential policy is deterministic for the same seed, input, and frame-time sequence, although it intentionally gives earlier and later enemies slightly different views of the current update.
+[Briefly identify meaningful external code/resources, discussion or collaboration, and AI assistance. Link to sources where relevant, say what they contributed, and explain what you checked yourself. State “None beyond the course material” if applicable. No prompt transcript or activity diary is needed. Retain required licence/attribution notices.]
 
-Enemy headings are initialized only after the complete entity-population loop. The additional random draws therefore do not change the Week 4 seeded world layout or entity-kind sequence. Headings are small authoritative entity state; the spatial grid and enemy-index list remain derived, non-owning indexes.
+## Architectural investigation — VG only
 
-After all movement is resolved and synchronized, the camera view maps to its own clamped, half-open spatial-cell range. Kotte gathers entity references from only those cells, sorts and removes duplicate indices, and exact-tests the remaining candidates against the camera rectangle. Gameplay never consumes this visibility result, so enemies continue moving, colliding, turning, and changing spatial cells while off-screen.
+Delete this section for a G submission. For VG, pose a focused engineering question about one decision in your implementation, investigate it, and draw a conclusion from evidence. Documenting the explanation already required for G is not enough. Aim for half a page to one page, excluding small tables, diagrams, or code excerpts. You can use the same decision in your presentation too.
 
-World entities still do not draw themselves. Exact camera overlaps become owning `RenderCommand` values, the renderer sorts those commands by layer and ground-y depth, and raylib executes them. Bombs use the ground layer, while standing objects sort from top to bottom within the world layer. Week 4 changes the source of visibility candidates without changing the Week 3 extraction, sorting, or execution policy.
+### Decision
 
-The tile map retains its more direct Week 2 selection. It converts the camera view into a clamped, half-open tile range and visits only that range. Tile terrain and dynamic entity membership remain separate structures because they have different ownership and update rules.
+[State the question you are investigating and the implementation decision it concerns. Describe your current approach and a plausible alternative. Identify the relevant code. You do not need to implement the alternative.]
 
-The on-screen diagnostics show:
+### Method
 
-* the complete map dimensions and tile count;
-* the number of rendered tiles as a percentage of the complete world;
-* visible entities as a percentage of the total, visibility tests, and render commands;
-* the number of enemies updated;
-* broad-phase candidates and the reduction compared with a full entity scan;
-* narrow-phase exact tests and contacts.
+[How did you investigate the decision? Give enough detail to reproduce the key observation: setup, input, configuration/seed, and the test, trace, debugger inspection, or other method used.]
 
-The lower-left diagnostics also show the seed and world dimensions. The low-level query counters remain available in the source for instructor investigation, but are not placed in the normal student-facing HUD.
+### Evidence
 
-The original Week 1 baseline remains available from the `2026-week-01` tag. The Week 2 camera and tile-culling reference remains available from `2026-week-02`. The Week 3 entity-rendering reference remains available from `2026-week-03`, and the Week 4 spatial-query reference remains available from `2026-week-04`.
+[What did you actually observe in your game? Include the relevant result or a small excerpt, table, or link to supporting material.]
 
-Movement still uses the current variable-time update: normalized direction multiplied by speed and frame delta time. Ordinary player and enemy steps are small compared with the tile-sized obstacles, so Week 5 does not introduce a fixed-timestep accumulator or movement substeps without a demonstrated need. A sufficiently large frame delta can theoretically move an entity completely through a blocker; this discrete-collision limitation is accepted and documented rather than hidden.
+### Interpretation
 
-Bomb placement, fuse timers, four-direction tile propagation, crate destruction, stable identity, events, and deferred structural mutation remain later problems. Those mechanics will extend the same off-screen simulation rule beyond persistent enemy movement and create a concrete reason to revisit lifetime and event architecture.
+[Explain why it happened using the relevant code or architecture. Analyse at least one edge case, failure, defect, limitation, or trade-off illustrated by the investigation. Discuss relevant consequences for correctness, maintainability, performance, and/or scalability; you do not need to cover all four.]
 
-## Random numbers
+### Conclusion
 
-Kotte uses the open-source [`Random<RomuDuoJr>`](https://github.com/ulfben/cpp_prngs) random-number generator. It is fast, compact, easy to seed, deterministic across platforms, compatible with standard-library algorithms, and provides convenient game-oriented operations such as ranges, normalized values, coin flips, and selecting elements from collections.
+[When is your approach appropriate, what limits it, and when might an alternative become preferable? Base the conclusion on your evidence. Confirming that the current approach is suitable is a valid result.]
 
-## Status
-
-Week 5 reference implementation: camera-independent collision broad phase, exact gameplay footprints, solid-category filtering, axis-rejecting player response, stop-and-turn autonomous enemies, immediate moving-entity grid synchronization, and separate collision diagnostics. Fixed simulation timing, stable entity handles, gameplay lifetimes, damage, bomb mechanics, and sprite/asset management are intentionally deferred to later course work.
+<!-- Submission: commit and push this README with your source to GitHub or the internal Gitea server. Submit the final commit link and a runnable Release ZIP from that version in Studium. Ensure the teacher can access the repository throughout assessment. -->

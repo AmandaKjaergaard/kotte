@@ -27,17 +27,32 @@ namespace
             static_cast<std::uint32_t>(crate_handle.generation + 1)
         };
         require(!store.contains(wrong_generation), "An occupied slot must reject the wrong generation.");
+        const kotte::EntityStore& const_store = store;
+        require(store.try_get(wrong_generation) == nullptr,
+            "Mutable lookup must reject the wrong generation.");
+        require(const_store.try_get(wrong_generation) == nullptr,
+            "Const lookup must reject the wrong generation.");
+        require(store.try_get({}) == nullptr,
+            "Mutable lookup must reject an out-of-range handle.");
         require(!store.contains({}), "A default out-of-range handle must be rejected.");
 
         require(store.destroy(crate_handle), "A live handle must be destroyable.");
         require(!store.contains(crate_handle), "A destroyed handle must stop resolving immediately.");
         require(!store.contains(wrong_generation), "An empty slot must not resolve even with its current generation.");
         require(!store.destroy(crate_handle), "Repeated destruction must be harmless.");
+        require(store.try_get(wrong_generation) == nullptr,
+            "Mutable lookup must reject an empty slot at its current generation.");
 
         const kotte::EntityHandle enemy_handle = store.create({kotte::EntityKind::enemy});
         require(enemy_handle.slot == crate_handle.slot, "Creation should reuse the available slot.");
         require(enemy_handle.generation != crate_handle.generation, "Slot reuse must advance the generation.");
         require(!store.contains(crate_handle), "A stale handle must not resolve to the replacement entity.");
+        require(store.try_get(crate_handle) == nullptr,
+            "Mutable lookup must reject the previous occupant's handle.");
+        require(!store.destroy(crate_handle),
+            "Stale destruction must not remove a replacement entity.");
+        require(store.contains(enemy_handle),
+            "The replacement must survive stale destruction.");
 
         const kotte::Entity* enemy = store.try_get(enemy_handle);
         require(enemy != nullptr && enemy->kind == kotte::EntityKind::enemy,
