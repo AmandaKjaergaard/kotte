@@ -134,21 +134,39 @@ namespace kotte
             effect.remaining_seconds = blast_effect_seconds_;
             effect.tile_centres.reserve(static_cast<std::size_t>(fact.blast_range) * 4 + 1);
 
+            bool player_damaged = false;
+
             const float tile_extent = static_cast<float>(tile_size_);
             const int origin_column = static_cast<int>(std::floor(fact.world_position.x / tile_extent));
             const int origin_row = static_cast<int>(std::floor(fact.world_position.y / tile_extent));
-            (void) resolve_blast_tile(effect, origin_column, origin_row);
+            (void) resolve_blast_tile(effect, player_damaged, origin_column, origin_row);
 
             // The detonating bomb must disappear even if its presentation or
             // collision bounds change independently of blast-tile detection.
             destroy_entity_requests_.push_back({fact.bomb});
 
-            append_blast_ray(effect, origin_column, origin_row, 0, -1, fact.blast_range);
-            append_blast_ray(effect, origin_column, origin_row, 1, 0, fact.blast_range);
-            append_blast_ray(effect, origin_column, origin_row, 0, 1, fact.blast_range);
-            append_blast_ray(effect, origin_column, origin_row, -1, 0, fact.blast_range);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, 0, -1, fact.blast_range);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, 1, 0, fact.blast_range);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, 0, 1, fact.blast_range);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, -1, 0, fact.blast_range);
 
             blast_effects_.push_back(std::move(effect));
+
+            if (player_damaged) {
+                Entity& player_entity = player();
+
+                if (player_entity.player_state.has_value()) {
+                    PlayerState& player_state = *player_entity.player_state;
+
+                    if (!player_state.is_dead) {
+                        player_state.health -= 1;
+
+                        if (player_state.health == 0) {
+                            player_state.is_dead = true;
+                        }
+                    }
+                }
+            }
         }
 
         bomb_detonated_facts_.clear();
@@ -329,6 +347,7 @@ namespace kotte
 
     bool Application::resolve_blast_tile(
         BlastEffect& effect,
+        bool& player_damaged,
         int column,
         int row){
         const Vector2 centre = tile_centre(column, row);
@@ -362,6 +381,7 @@ namespace kotte
                 break;
             case EntityKind::player:
                 // Player-hit consequences are outside the Week 6 lifetime seam.
+                player_damaged = true;
                 break;
             }
         }
@@ -371,6 +391,7 @@ namespace kotte
 
     void Application::append_blast_ray(
         BlastEffect& effect,
+        bool& player_damaged,
         int origin_column,
         int origin_row,
         int column_step,
@@ -383,7 +404,7 @@ namespace kotte
                 break;
             }
 
-            if(resolve_blast_tile(effect, column, row)){
+            if(resolve_blast_tile(effect, player_damaged, column, row)){
                 break;
             }
         }

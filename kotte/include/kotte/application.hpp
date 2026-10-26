@@ -88,11 +88,13 @@ namespace kotte
         void apply_entity_destructions();
         void apply_bomb_placements();
         [[nodiscard]] bool resolve_blast_tile(
-            BlastEffect& effect,
+            BlastEffect& effect, 
+            bool& player_damaged,
             int column,
             int row);
         void append_blast_ray(
             BlastEffect& effect,
+            bool& player_damaged,
             int origin_column,
             int origin_row,
             int column_step,
