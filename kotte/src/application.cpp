@@ -245,6 +245,11 @@ namespace kotte
             ++collision_diagnostics_.movement_attempts;
 
             Entity& enemy = entity(enemy_handle);
+
+            if (enemy.enemy_state.has_value()) {
+                enemy.enemy_state->bomb_timer -= delta_time;
+            }
+
             const Rectangle old_world_bounds = entity_world_bounds(enemy);
             // Propose one cardinal movement for this enemy.
             const Vector2 direction = cardinal_vector(enemy.movement_heading);

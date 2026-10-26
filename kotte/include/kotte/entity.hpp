@@ -34,11 +34,16 @@ namespace kotte
         bool is_dead = false;
     };
 
+    struct EnemyState final {
+        float bomb_timer = 3.0f;
+    };
+
     struct Entity final {
         EntityKind kind = EntityKind::crate;
         Vector2 world_position{};
         CardinalDirection movement_heading = CardinalDirection::right;
         std::optional<BombState> bomb_state;
         std::optional<PlayerState> player_state;
+        std::optional<EnemyState> enemy_state;
     };
 }
