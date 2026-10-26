@@ -94,6 +94,23 @@ namespace kotte
         return slots_.size();
     }
 
+    void EntityStore::clear() noexcept {
+        assert(free_slots_.capacity() >= slots_.size());
+        
+        free_slots_.clear();
+        live_count_ = 0;
+
+        for (std::size_t i = 0; i < slots_.size(); ++i) {
+            Slot& slot = slots_[i];
+
+            if (slot.entity.has_value()) {
+                slot.entity.reset();
+                slot.generation = next_generation(slot.generation);
+            }
+            free_slots_.push_back(static_cast<std::uint32_t>(i));
+        }
+    }
+
     std::uint32_t EntityStore::next_generation(std::uint32_t generation) noexcept{
         ++generation;
 
