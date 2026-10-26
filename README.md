@@ -1,12 +1,17 @@
 # Bomberman World — [your game title]
 
-**Student:** [your name]
+Student: Amanda Kjaergaard
 
 > Replace the prompts below and remove these instructions. Keep answers brief. Your implementation explanations and reflection belong in the presentation; you do not need to write them out here. Complete the final section only if seeking Pass with Distinction (VG).
 
 ## How to play
 
-- **Controls:** [movement, bombs, restart, and any extension controls]
+- Controls:
+	Movement: W, A, S, D or arrow keys
+	Bomb: Spacebar
+	Restart:
+	OTHER EXTENSIONS HERE!!!!!!!!!!!!!
+	Exit game: Esc or Q
 - **Objective and rules:** [how to win/lose; which result wins if both happen together; any extension rules needed to understand the game]
 - **Configurations / demo setup:** [how to select gameplay/stress configurations and use any special setup or debug keys; write “default” where appropriate]
 

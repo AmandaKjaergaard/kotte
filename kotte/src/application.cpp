@@ -545,7 +545,10 @@ namespace kotte
             "world: {} x {} tiles | {} total", map_.width(), map_.height(), map_.tile_count());
         DrawText(diagnostics.c_str(), 10, window_.height() - 54, 20, RAYWHITE);
 
-        DrawText("move: WASD/arrows | bomb: Space | quit: Q/Escape", 10, window_.height() - 30, 20, LIGHTGRAY);
+        DrawText("move: WASD/arrows | bomb: Space | quit: Q/Escape", 10, window_.height() - 30, 20, RAYWHITE);
+
+        diagnostics = std::format("Player health: {}", player().player_state->health);
+        DrawText(diagnostics.c_str(), 10, 130, 20, RAYWHITE);
     }
 
     void Application::populate_entities(){
@@ -553,7 +556,12 @@ namespace kotte
         // relocate slot storage. Handles remain valid even if this estimate grows.
         entities_.reserve(map_.tile_count() / 4);
 
-        const Entity player_entity{EntityKind::player, {tile_size_ * 2.5f, tile_size_ * 2.5f}};
+        const Entity player_entity{
+            .kind = EntityKind::player, 
+            .world_position = {tile_size_ * 2.5f, tile_size_ * 2.5f},
+            .player_state = PlayerState{.health = 3}
+        };
+
         player_handle_ = entities_.create(player_entity);
         spatial_grid_.insert(player_handle_, entity_world_bounds(player_entity));
 

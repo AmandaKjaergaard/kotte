@@ -29,10 +29,15 @@ namespace kotte
         bool detonation_requested = false;
     };
 
+    struct PlayerState final {
+        std::uint8_t health = 3;
+    };
+
     struct Entity final {
         EntityKind kind = EntityKind::crate;
         Vector2 world_position{};
         CardinalDirection movement_heading = CardinalDirection::right;
         std::optional<BombState> bomb_state;
+        std::optional<PlayerState> player_state;
     };
 }
