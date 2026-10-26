@@ -49,11 +49,15 @@ namespace kotte
         // boundaries visible as the simulation grows.
         begin_frame();
         collect_frame_actions();
-        update_gameplay(delta_time);
-        update_timed_gameplay(delta_time);
-        resolve_gameplay_facts();
-        apply_structural_mutations();
-        update_presentation(delta_time);
+
+        if (!player().player_state->is_dead) {
+            update_gameplay(delta_time);
+            update_timed_gameplay(delta_time);
+            resolve_gameplay_facts();
+            apply_structural_mutations();
+            update_presentation(delta_time);
+        }
+        
         render();
     }
 
@@ -588,6 +592,10 @@ namespace kotte
 
         diagnostics = std::format("Player health: {}", player().player_state->health);
         DrawText(diagnostics.c_str(), 10, 130, 20, RAYWHITE);
+
+        if (player().player_state->is_dead) {
+            DrawText("Game Over!", window_.width() / 2 - 300, window_.height() / 2, 130, RED);
+        }
     }
 
     void Application::populate_entities(){
