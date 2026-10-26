@@ -248,6 +248,17 @@ namespace kotte
 
             if (enemy.enemy_state.has_value()) {
                 enemy.enemy_state->bomb_timer -= delta_time;
+
+                if (enemy.enemy_state->bomb_timer <= 0.0f) {
+                    if (random_.coin_flip(0.25f)) {
+                        place_bomb_requests_.push_back({
+                            enemy_handle,
+                            tile_centre(enemy.world_position)
+                            });
+                    }
+
+                    enemy.enemy_state->bomb_timer = 3.0f; // Reset the bomb timer for the next placement
+                }
             }
 
             const Rectangle old_world_bounds = entity_world_bounds(enemy);
@@ -608,7 +619,16 @@ namespace kotte
                     static_cast<float>(x * tile_size_ + tile_size_ / 2),
                     static_cast<float>(y * tile_size_ + tile_size_ / 2)
                 };
-                const Entity new_entity{kind, world_position};
+                //const Entity new_entity{kind, world_position};
+
+                const Entity new_entity{
+                    .kind = kind,
+                    .world_position = world_position,
+                    .enemy_state = (kind == EntityKind::enemy)
+                        ? std::optional<EnemyState>(EnemyState{})
+                        : std::nullopt
+                };
+
                 const EntityHandle handle = entities_.create(new_entity);
                 spatial_grid_.insert(handle, entity_world_bounds(new_entity));
 
