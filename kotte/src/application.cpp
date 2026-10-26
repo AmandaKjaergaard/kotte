@@ -50,6 +50,10 @@ namespace kotte
         begin_frame();
         collect_frame_actions();
 
+        if (frame_actions_.reset_requested) {
+            //restart_game();
+        }
+
         if (!player().player_state->is_dead) {
             update_gameplay(delta_time);
             update_timed_gameplay(delta_time);
@@ -74,6 +78,8 @@ namespace kotte
         if(IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)){
             request_exit();
         }
+        frame_actions_.reset_requested = IsKeyPressed(KEY_R);
+
         frame_actions_.place_bomb = IsKeyPressed(KEY_SPACE);
 
         Vector2& movement_direction = frame_actions_.player_movement_direction;

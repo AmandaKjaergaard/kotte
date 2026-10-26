@@ -50,6 +50,7 @@ namespace kotte
         struct FrameActions final {
             Vector2 player_movement_direction{};
             bool place_bomb = false;
+            bool reset_requested = false;
         };
 
         struct PlaceBombRequest final {
