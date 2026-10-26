@@ -300,7 +300,9 @@ namespace kotte
     void Application::apply_bomb_placements(){
         for(const PlaceBombRequest& request : place_bomb_requests_){
             const Entity* owner = entities_.try_get(request.owner);
-            if(owner == nullptr || owner->kind != EntityKind::player
+            if (owner == nullptr 
+                || owner->kind != EntityKind::player 
+                && owner->kind != EntityKind::enemy
                 || owner_has_active_bomb(request.owner)){
                 continue;
             }
