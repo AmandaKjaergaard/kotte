@@ -761,6 +761,13 @@ namespace kotte
                 continue;
             }
 
+            if (candidate->kind == EntityKind::bomb 
+                && candidate->bomb_state.has_value()
+                && candidate->bomb_state->owner == moving_entity_handle) {
+                // The owner of a bomb can move through it until the fuse expires.
+                continue;
+            }
+
             // Narrow phase: exact-test the remaining solid candidate.
             ++collision_diagnostics_.exact_tests;
             if(CheckCollisionRecs(proposed_collision_bounds, entity_collision_bounds(*candidate))){
@@ -777,9 +784,8 @@ namespace kotte
         case EntityKind::player:
         case EntityKind::crate:
         case EntityKind::enemy:
-            return true;
         case EntityKind::bomb:
-            return false;
+            return true;
         }
 
         return false;
