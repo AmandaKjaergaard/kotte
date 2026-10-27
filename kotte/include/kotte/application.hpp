@@ -74,6 +74,13 @@ namespace kotte
             float remaining_seconds = 0.0f;
         };
 
+        struct GameState final {
+            float elapsed_seconds = 0.0f;
+            float end_game_seconds = 40.0f;
+            bool has_lost = false;
+            bool has_won = false;
+        };
+
         void run_frame(float delta_time);
         void begin_frame() noexcept;
         void restart_game();
@@ -83,6 +90,7 @@ namespace kotte
         void resolve_gameplay_facts();
         void apply_structural_mutations();
         void update_presentation(float delta_time);
+        void update_game_time(float delta_time);
         void update_player(float delta_time);
         void try_move_player(Vector2 axis_displacement);
         void update_enemies(float delta_time);
@@ -164,10 +172,10 @@ namespace kotte
         std::vector<BombDetonated> bomb_detonated_facts_;
         std::vector<DestroyEntityRequest> destroy_entity_requests_;
         std::vector<BlastEffect> blast_effects_;
+        GameState game_state_{};
         CollisionDiagnostics collision_diagnostics_;
         std::uint64_t seed_;
         EntityHandle player_handle_;
         bool exit_requested_ = false;
-        int enemy_kill_count_ = 0;
     };
 }

@@ -106,6 +106,7 @@ namespace kotte
 
     void Application::update_gameplay(float delta_time){
         // The player and every enemy are movers; each asks its own collision question.
+        update_game_time(delta_time);
         update_player(delta_time);
         update_enemies(delta_time);
         queue_bomb_placement();
@@ -141,6 +142,10 @@ namespace kotte
     }
 
     void Application::resolve_gameplay_facts(){
+        if (game_state_.elapsed_seconds >= game_state_.end_game_seconds) {
+            game_state_.has_lost = true;
+            player().player_state->is_dead = true;
+        }
         std::vector<EntityHandle> player_kill_candidates;
         for(const BombDetonated& fact : bomb_detonated_facts_){
             BlastEffect effect;
@@ -164,22 +169,34 @@ namespace kotte
             append_blast_ray(effect, player_damaged, origin_column, origin_row, -1, 0, fact.blast_range, player_kill_candidates, fact.owner);
 
             blast_effects_.push_back(std::move(effect));
+            
+            Entity& player_entity = player();
+            if (player_entity.player_state.has_value()) {
+                PlayerState& player_state = *player_entity.player_state;
 
-            if (player_damaged) {
-                Entity& player_entity = player();
-
-                if (player_entity.player_state.has_value()) {
-                    PlayerState& player_state = *player_entity.player_state;
+                if (player_damaged) { //player taking damage
 
                     if (!player_state.is_dead) {
                         player_state.health -= 1;
-
-                        if (player_state.health == 0) {
-                            player_state.is_dead = true;
-                        }
                     }
                 }
+
+                //Playerl losing
+                if (player_state.health <= 0) {
+                    player_state.is_dead = true;
+                    game_state_.has_lost = true;
+                }
+
+                //Player winning by killing 5 enemies
+                if (player_entity.player_state.has_value()
+                    && player_entity.player_state->is_dead
+                    && player_entity.player_state->enemy_kill_count_ >= 5) {
+                    player_state.is_dead = true;
+                    game_state_.has_won = true;
+                }
+                
             }
+
         }
 
         std::ranges::sort(player_kill_candidates);
@@ -187,7 +204,7 @@ namespace kotte
         const auto duplicate_tail = std::ranges::unique(player_kill_candidates);
         player_kill_candidates.erase(duplicate_tail.begin(), duplicate_tail.end());
 
-        enemy_kill_count_ += static_cast<std::uint32_t>(player_kill_candidates.size());
+        player().player_state->enemy_kill_count_ += static_cast<std::uint32_t>(player_kill_candidates.size());
 
         bomb_detonated_facts_.clear();
     }
@@ -207,6 +224,10 @@ namespace kotte
         });
 
         update_camera(delta_time);
+    }
+
+    void Application::update_game_time(float delta_time) {
+        game_state_.elapsed_seconds += delta_time;
     }
 
     void Application::update_player(float delta_time){
@@ -623,12 +644,19 @@ namespace kotte
         diagnostics = std::format("Player health: {}", player().player_state->health);
         DrawText(diagnostics.c_str(), 10, 130, 20, RAYWHITE);
 
-        if (player().player_state->is_dead) {
+        diagnostics = std::format("Enemies killed: {}", player().player_state->enemy_kill_count_);
+        DrawText(diagnostics.c_str(), 10, 154, 20, RAYWHITE);
+
+        if (player().player_state->is_dead && game_state_.has_lost) {
             DrawText("Game Over!", window_.width() / 2 - 300, window_.height() / 2, 130, RED);
         }
 
-        diagnostics = std::format("Enemies killed: {}", enemy_kill_count_);
-        DrawText(diagnostics.c_str(), 10, 154, 20, RAYWHITE);
+        if (player().player_state->is_dead && game_state_.has_won) {
+            DrawText("You Win!", window_.width() / 2 - 300, window_.height() / 2, 130, GREEN);
+        }
+
+        diagnostics = std::format("Game time: {:.2f} seconds", (game_state_.end_game_seconds - game_state_.elapsed_seconds));
+        DrawText(diagnostics.c_str(), 10, 178, 20, RAYWHITE);
     }
 
     void Application::populate_entities(){
@@ -895,6 +923,7 @@ namespace kotte
         populate_entities();
         initialize_enemies();
         frame_actions_.reset_requested = false;
+        game_state_ = GameState{};
     }
 
     void Application::request_exit() noexcept{
