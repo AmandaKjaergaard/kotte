@@ -76,6 +76,7 @@ namespace kotte
 
         void run_frame(float delta_time);
         void begin_frame() noexcept;
+        void restart_game();
         void collect_frame_actions() noexcept;
         void update_gameplay(float delta_time);
         void update_timed_gameplay(float delta_time);

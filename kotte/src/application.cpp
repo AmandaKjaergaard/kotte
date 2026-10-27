@@ -51,7 +51,9 @@ namespace kotte
         collect_frame_actions();
 
         if (frame_actions_.reset_requested) {
-            //restart_game();
+            restart_game();
+            render();
+            return;
         }
 
         if (!player().player_state->is_dead) {
@@ -843,6 +845,25 @@ namespace kotte
 
     float Application::entity_roundness(EntityKind kind) noexcept{
         return kind == EntityKind::crate ? 0.15f : 0.8f;
+    }
+
+    void Application::restart_game() {
+        // Clear all entities and reset the game state
+        entities_.clear();
+        spatial_grid_.clear();
+        active_bomb_handles_.clear();
+        enemy_handles_.clear();
+        blast_effects_.clear();
+        destroy_entity_requests_.clear();
+        place_bomb_requests_.clear();
+        bomb_detonated_facts_.clear();
+        // Reset player handle and collision diagnostics
+        player_handle_ = EntityHandle{};
+        collision_diagnostics_ = CollisionDiagnostics{};
+        // Repopulate entities and initialize enemies
+        populate_entities();
+        initialize_enemies();
+        frame_actions_.reset_requested = false;
     }
 
     void Application::request_exit() noexcept{
