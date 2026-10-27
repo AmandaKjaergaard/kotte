@@ -141,26 +141,27 @@ namespace kotte
     }
 
     void Application::resolve_gameplay_facts(){
+        std::vector<EntityHandle> player_kill_candidates;
         for(const BombDetonated& fact : bomb_detonated_facts_){
             BlastEffect effect;
             effect.remaining_seconds = blast_effect_seconds_;
             effect.tile_centres.reserve(static_cast<std::size_t>(fact.blast_range) * 4 + 1);
-
+            
             bool player_damaged = false;
 
             const float tile_extent = static_cast<float>(tile_size_);
             const int origin_column = static_cast<int>(std::floor(fact.world_position.x / tile_extent));
             const int origin_row = static_cast<int>(std::floor(fact.world_position.y / tile_extent));
-            (void) resolve_blast_tile(effect, player_damaged, origin_column, origin_row);
+            (void) resolve_blast_tile(effect, player_damaged, origin_column, origin_row, player_kill_candidates, fact.owner);
 
             // The detonating bomb must disappear even if its presentation or
             // collision bounds change independently of blast-tile detection.
             destroy_entity_requests_.push_back({fact.bomb});
 
-            append_blast_ray(effect, player_damaged, origin_column, origin_row, 0, -1, fact.blast_range);
-            append_blast_ray(effect, player_damaged, origin_column, origin_row, 1, 0, fact.blast_range);
-            append_blast_ray(effect, player_damaged, origin_column, origin_row, 0, 1, fact.blast_range);
-            append_blast_ray(effect, player_damaged, origin_column, origin_row, -1, 0, fact.blast_range);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, 0, -1, fact.blast_range, player_kill_candidates, fact.owner);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, 1, 0, fact.blast_range, player_kill_candidates, fact.owner);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, 0, 1, fact.blast_range, player_kill_candidates, fact.owner);
+            append_blast_ray(effect, player_damaged, origin_column, origin_row, -1, 0, fact.blast_range, player_kill_candidates, fact.owner);
 
             blast_effects_.push_back(std::move(effect));
 
@@ -180,6 +181,13 @@ namespace kotte
                 }
             }
         }
+
+        std::ranges::sort(player_kill_candidates);
+
+        const auto duplicate_tail = std::ranges::unique(player_kill_candidates);
+        player_kill_candidates.erase(duplicate_tail.begin(), duplicate_tail.end());
+
+        enemy_kill_count_ += static_cast<std::uint32_t>(player_kill_candidates.size());
 
         bomb_detonated_facts_.clear();
     }
@@ -379,7 +387,10 @@ namespace kotte
         BlastEffect& effect,
         bool& player_damaged,
         int column,
-        int row){
+        int row,
+        std::vector<EntityHandle>& player_kill_candidates,
+        std::optional<EntityHandle> bomb_owner
+        ){
         const Vector2 centre = tile_centre(column, row);
         effect.tile_centres.push_back(centre);
 
@@ -401,16 +412,24 @@ namespace kotte
             }
 
             switch(candidate->kind){
-            case EntityKind::bomb:
             case EntityKind::enemy:
+
+                if (bomb_owner.has_value()) {
+                    const Entity* owner = entities_.try_get(*bomb_owner);
+
+                    if (owner != nullptr && owner->kind == EntityKind::player) {
+                        player_kill_candidates.push_back(handle);
+                    }
+                }
+
                 destroy_entity_requests_.push_back({handle});
                 break;
+            case EntityKind::bomb:
             case EntityKind::crate:
                 destroy_entity_requests_.push_back({handle});
                 blocked_by_crate = true;
                 break;
             case EntityKind::player:
-                // Player-hit consequences are outside the Week 6 lifetime seam.
                 player_damaged = true;
                 break;
             }
@@ -426,7 +445,10 @@ namespace kotte
         int origin_row,
         int column_step,
         int row_step,
-        std::uint8_t range){
+        std::uint8_t range,
+        std::vector<EntityHandle>& player_kill_candidates,
+        std::optional<EntityHandle> bomb_owner)
+        {
         for(int distance = 1; distance <= static_cast<int>(range); ++distance){
             const int column = origin_column + column_step * distance;
             const int row = origin_row + row_step * distance;
@@ -434,7 +456,7 @@ namespace kotte
                 break;
             }
 
-            if(resolve_blast_tile(effect, player_damaged, column, row)){
+            if(resolve_blast_tile(effect, player_damaged, column, row, player_kill_candidates, bomb_owner)){
                 break;
             }
         }
@@ -604,6 +626,9 @@ namespace kotte
         if (player().player_state->is_dead) {
             DrawText("Game Over!", window_.width() / 2 - 300, window_.height() / 2, 130, RED);
         }
+
+        diagnostics = std::format("Enemies killed: {}", enemy_kill_count_);
+        DrawText(diagnostics.c_str(), 10, 154, 20, RAYWHITE);
     }
 
     void Application::populate_entities(){

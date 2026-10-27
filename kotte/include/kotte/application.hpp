@@ -93,7 +93,10 @@ namespace kotte
             BlastEffect& effect, 
             bool& player_damaged,
             int column,
-            int row);
+            int row,
+            std::vector<EntityHandle>& player_kill_candidates,
+            std::optional<EntityHandle> bomb_owner = std::nullopt
+        );
         void append_blast_ray(
             BlastEffect& effect,
             bool& player_damaged,
@@ -101,7 +104,10 @@ namespace kotte
             int origin_row,
             int column_step,
             int row_step,
-            std::uint8_t range);
+            std::uint8_t range,
+            std::vector<EntityHandle>& player_kill_candidates,
+            std::optional<EntityHandle> bomb_owner = std::nullopt
+            );
         void update_camera(float delta_time) noexcept;
         void render();
         void populate_entities();
@@ -162,5 +168,6 @@ namespace kotte
         std::uint64_t seed_;
         EntityHandle player_handle_;
         bool exit_requested_ = false;
+        int enemy_kill_count_ = 0;
     };
 }
