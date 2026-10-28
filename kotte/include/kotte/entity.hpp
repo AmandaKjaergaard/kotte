@@ -33,6 +33,7 @@ namespace kotte
         std::uint8_t health = 3;
         bool is_dead = false;
         int enemy_kill_count_ = 0;
+        int enemies_to_kill_for_win_ = 3;
     };
 
     struct EnemyState final {

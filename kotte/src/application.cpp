@@ -106,7 +106,7 @@ namespace kotte
 
     void Application::update_gameplay(float delta_time){
         // The player and every enemy are movers; each asks its own collision question.
-        update_game_time(delta_time);
+        update_game_state(delta_time);
         update_player(delta_time);
         update_enemies(delta_time);
         queue_bomb_placement();
@@ -142,10 +142,6 @@ namespace kotte
     }
 
     void Application::resolve_gameplay_facts(){
-        if (game_state_.elapsed_seconds >= game_state_.end_game_seconds) {
-            game_state_.has_lost = true;
-            player().player_state->is_dead = true;
-        }
         std::vector<EntityHandle> player_kill_candidates;
         for(const BombDetonated& fact : bomb_detonated_facts_){
             BlastEffect effect;
@@ -184,15 +180,15 @@ namespace kotte
                 //Playerl losing
                 if (player_state.health <= 0) {
                     player_state.is_dead = true;
-                    game_state_.has_lost = true;
+                    game_state_.current_state = GameState::Lost;
                 }
 
                 //Player winning by killing 5 enemies
                 if (player_entity.player_state.has_value()
-                    && player_entity.player_state->is_dead
-                    && player_entity.player_state->enemy_kill_count_ >= 5) {
+                    && !player_entity.player_state->is_dead
+                    && player_entity.player_state->enemy_kill_count_ >= player_entity.player_state->enemies_to_kill_for_win_) {
                     player_state.is_dead = true;
-                    game_state_.has_won = true;
+                    game_state_.current_state = GameState::Won;
                 }
                 
             }
@@ -226,8 +222,13 @@ namespace kotte
         update_camera(delta_time);
     }
 
-    void Application::update_game_time(float delta_time) {
+    void Application::update_game_state(float delta_time) {
         game_state_.elapsed_seconds += delta_time;
+
+        if (game_state_.elapsed_seconds >= game_state_.end_game_seconds) {
+            game_state_.current_state = GameState::Lost;
+            player().player_state->is_dead = true;
+        }
     }
 
     void Application::update_player(float delta_time){
@@ -647,11 +648,11 @@ namespace kotte
         diagnostics = std::format("Enemies killed: {}", player().player_state->enemy_kill_count_);
         DrawText(diagnostics.c_str(), 10, 154, 20, RAYWHITE);
 
-        if (player().player_state->is_dead && game_state_.has_lost) {
+        if (player().player_state->is_dead && game_state_.current_state == GameState::Lost) {  
             DrawText("Game Over!", window_.width() / 2 - 300, window_.height() / 2, 130, RED);
         }
 
-        if (player().player_state->is_dead && game_state_.has_won) {
+        if (player().player_state->is_dead && game_state_.current_state == GameState::Won) {
             DrawText("You Win!", window_.width() / 2 - 300, window_.height() / 2, 130, GREEN);
         }
 
@@ -868,13 +869,21 @@ namespace kotte
         return static_cast<CardinalDirection>(new_value);
     }
 
-    bool Application::owner_has_active_bomb(EntityHandle owner) const noexcept{
+    bool Application::owner_has_active_bomb(EntityHandle owner) const noexcept{ //want the player to be able to have two bombs at the same time
+        return std::ranges::count_if(active_bomb_handles_, [this, owner](EntityHandle bomb_handle) {
+            const Entity* bomb = entities_.try_get(bomb_handle);
+            return bomb != nullptr
+                && bomb->bomb_state.has_value()
+                && bomb->bomb_state->owner == owner;
+            }) >= 2;
+        /*
         return std::ranges::any_of(active_bomb_handles_, [this, owner](EntityHandle bomb_handle){
             const Entity* bomb = entities_.try_get(bomb_handle);
             return bomb != nullptr
                 && bomb->bomb_state.has_value()
                 && bomb->bomb_state->owner == owner;
         });
+        */
     }
 
     Vector2 Application::tile_centre(Vector2 world_position) noexcept{
@@ -923,7 +932,7 @@ namespace kotte
         populate_entities();
         initialize_enemies();
         frame_actions_.reset_requested = false;
-        game_state_ = GameState{};
+        game_state_ = RecordGameState{};
     }
 
     void Application::request_exit() noexcept{
