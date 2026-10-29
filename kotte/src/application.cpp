@@ -261,6 +261,8 @@ namespace kotte
 
         const Rectangle new_world_bounds = entity_world_bounds(player_entity);
         spatial_grid_.update(player_handle_, old_world_bounds, new_world_bounds);
+
+        collect_powerups();
     }
 
     void Application::try_move_player(Vector2 axis_displacement){
@@ -352,13 +354,20 @@ namespace kotte
                 continue;
             }
 
+            std::uint8_t blast_range = bomb_blast_range_;
+
+            if (owner->kind == EntityKind::player
+                && owner->player_state.has_value()) {
+                blast_range = owner->player_state->bomb_blast_range_;
+            }
+
             const Entity bomb{
                 .kind = EntityKind::bomb,
                 .world_position = request.world_position,
                 .bomb_state = BombState{
                     .owner = request.owner,
                     .fuse_remaining = bomb_fuse_seconds_,
-                    .blast_range = bomb_blast_range_
+                    .blast_range = blast_range
                 }
             };
             const EntityHandle bomb_handle = entities_.create(bomb);
@@ -466,6 +475,9 @@ namespace kotte
                 break;
             case EntityKind::player:
                 player_damaged = true;
+                break;
+            case EntityKind::blast_powerup:
+                destroy_entity_requests_.push_back({ handle });
                 break;
             }
         }
@@ -699,7 +711,21 @@ namespace kotte
                 if(kind_roll >= 15 && kind_roll < 19){
                     continue;
                 }
-                const EntityKind kind = kind_roll < 15 ? EntityKind::crate : EntityKind::enemy;
+
+                EntityKind kind;
+
+                if(kind_roll < 14) {
+                    kind = EntityKind::crate;
+                }
+                else if (kind_roll < 19) {
+                    kind = EntityKind::blast_powerup;
+                }
+                else {
+                    kind = EntityKind::enemy;
+                }
+
+                //const EntityKind kind = kind_roll < 15 ? EntityKind::crate : EntityKind::enemy;
+
                 const Vector2 world_position{
                     static_cast<float>(x * tile_size_ + tile_size_ / 2),
                     static_cast<float>(y * tile_size_ + tile_size_ / 2)
@@ -761,6 +787,7 @@ namespace kotte
         case EntityKind::bomb: size = {22.0f, 22.0f}; break;
         case EntityKind::crate: size = {36.0f, 48.0f}; break;
         case EntityKind::enemy: size = {28.0f, 30.0f}; break;
+        case EntityKind::blast_powerup: size = { 24.0f, 24.0f }; break;
         }
 
         const Vector2 top_left = entity.world_position - Vector2{size.x / 2.0f, size.y};
@@ -777,6 +804,7 @@ namespace kotte
         case EntityKind::bomb: size = {18.0f, 12.0f}; break;
         case EntityKind::crate: size = {32.0f, 32.0f}; break;
         case EntityKind::enemy: size = {24.0f, 14.0f}; break;
+        case EntityKind::blast_powerup: size = { 16.0f, 16.0f }; break;
         }
 
         const Vector2 top_left = entity.world_position - Vector2{size.x / 2.0f, size.y};
@@ -854,7 +882,6 @@ namespace kotte
         case EntityKind::bomb:
             return true;
         }
-
         return false;
     }
 
@@ -920,12 +947,53 @@ namespace kotte
         case EntityKind::bomb: return bomb_color_;
         case EntityKind::crate: return crate_color_;
         case EntityKind::enemy: return enemy_color_;
+        case EntityKind::blast_powerup: return blast_powerup_color_;
         }
         return MAGENTA;
     }
 
     float Application::entity_roundness(EntityKind kind) noexcept{
-        return kind == EntityKind::crate ? 0.15f : 0.8f;
+        switch (kind) {
+        case EntityKind::blast_powerup:
+            return 1.0f;
+        default:
+            return kind == EntityKind::crate ? 0.15f : 0.8f;
+        }
+    }
+
+    void Application::collect_powerups() {
+        Entity& player_entity = player();
+
+        if (!player_entity.player_state.has_value() || player_entity.player_state->is_dead) {
+            return;
+        }
+
+        const Rectangle player_bounds = entity_collision_bounds(player_entity);
+
+        const SpatialQuery query = spatial_grid_.query(player_bounds);
+
+        for (const EntityHandle handle : query.entity_handles) {
+            if (handle == player_handle_) {
+                continue; // Skip the player itself
+            }
+
+            Entity* candidate = entities_.try_get(handle);
+
+            if (candidate == nullptr || candidate->kind != EntityKind::blast_powerup) {
+                continue;
+            }
+
+            if (!CheckCollisionRecs(player_bounds, entity_collision_bounds(*candidate))) {
+                continue; // No collision
+            }
+
+            PlayerState& state = *player_entity.player_state;
+            if (state.bomb_blast_range_ < state.max_bomb_blast_range_) {
+                state.bomb_blast_range_ += 1; // Increase the bomb blast range
+            }
+
+            destroy_entity_requests_.push_back({ handle }); // Mark the power-up for destruction
+        }
     }
 
     void Application::restart_game() {

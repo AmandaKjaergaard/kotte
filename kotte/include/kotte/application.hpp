@@ -98,6 +98,7 @@ namespace kotte
         void update_game_state(float delta_time);
         void update_player(float delta_time);
         void try_move_player(Vector2 axis_displacement);
+        void collect_powerups();
         void update_enemies(float delta_time);
         void queue_bomb_placement();
         void apply_entity_destructions();
@@ -162,6 +163,7 @@ namespace kotte
         static constexpr Color crate_color_{0xb0, 0x72, 0x3c, 0xff};
         static constexpr Color enemy_color_{0xd9, 0x4f, 0x70, 0xff};
         static constexpr Color wall_color_{0x78, 0x5f, 0x47, 0xff};
+        static constexpr Color blast_powerup_color_{ 0x4e, 0x9c, 0x4e, 0xff };
 
         Window window_; // Constructed first, destroyed last.
         Camera camera_;
