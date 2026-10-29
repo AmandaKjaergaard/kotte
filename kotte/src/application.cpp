@@ -117,19 +117,22 @@ namespace kotte
         for(const EntityHandle bomb_handle : active_bomb_handles_){
             Entity* bomb = entities_.try_get(bomb_handle);
             if(bomb == nullptr || !bomb->bomb_state.has_value()
-                || bomb->bomb_state->detonation_requested){
+                /* || bomb->bomb_state->detonation_requested*/) {
                 continue;
             }
 
             BombState& state = *bomb->bomb_state;
-            state.fuse_remaining -= delta_time;
-            if(state.fuse_remaining > 0.0f){
-                continue;
+
+            if (!state.detonation_requested) {
+                state.fuse_remaining -= delta_time;
+
+                if (state.fuse_remaining > 0.0f) {
+                    continue;
+                }
+
+                state.fuse_remaining = 0.0f;
+                state.detonation_requested = true;
             }
-
-            state.fuse_remaining = 0.0f;
-            state.detonation_requested = true;
-
             // The fact owns every value needed by later phases; it does not
             // borrow the bomb that will eventually request its own destruction.
             bomb_detonated_facts_.push_back({
@@ -447,6 +450,16 @@ namespace kotte
                 destroy_entity_requests_.push_back({handle});
                 break;
             case EntityKind::bomb:
+                //chain reaction 
+                if (candidate->bomb_state.has_value() && !candidate->bomb_state->detonation_requested) {
+                    Entity* bomb = entities_.try_get(handle);
+                    BombState& state = *bomb->bomb_state;
+                    state.detonation_requested = true;
+                }
+                /*else {
+                    destroy_entity_requests_.push_back({ handle });
+                }*/
+                break;
             case EntityKind::crate:
                 destroy_entity_requests_.push_back({handle});
                 blocked_by_crate = true;
