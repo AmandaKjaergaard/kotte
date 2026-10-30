@@ -103,6 +103,7 @@ namespace kotte
         void queue_bomb_placement();
         void apply_entity_destructions();
         void apply_bomb_placements();
+        const char* game_state_to_string(GameState state);
         [[nodiscard]] bool resolve_blast_tile(
             BlastEffect& effect, 
             bool& player_damaged,

@@ -673,6 +673,9 @@ namespace kotte
         diagnostics = std::format("Enemies killed: {}", player().player_state->enemy_kill_count_);
         DrawText(diagnostics.c_str(), 10, 154, 20, RAYWHITE);
 
+        diagnostics = std::format("Current GameState: {}", game_state_to_string(game_state_.current_state));
+        DrawText(diagnostics.c_str(), 10, 202, 20, RAYWHITE);
+
         if (player().player_state->is_dead && game_state_.current_state == GameState::Lost) {  
             DrawText("Game Over!", window_.width() / 2 - 300, window_.height() / 2, 130, RED);
         }
@@ -994,6 +997,21 @@ namespace kotte
 
             destroy_entity_requests_.push_back({ handle }); // Mark the power-up for destruction
         }
+    }
+
+    const char* Application::game_state_to_string(GameState state) {
+        switch (state) {
+        case GameState::Playing:
+            return "Playing";
+
+        case GameState::Lost:
+            return "Lost";
+
+        case GameState::Won:
+            return "Won";
+        }
+
+        return "Unknown";
     }
 
     void Application::restart_game() {
