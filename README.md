@@ -1,69 +1,43 @@
-# Bomberman World — [your game title]
+# Bomberman World — Boombastic
 
-Student: Amanda Kjaergaard
-
-> Replace the prompts below and remove these instructions. Keep answers brief. Your implementation explanations and reflection belong in the presentation; you do not need to write them out here. Complete the final section only if seeking Pass with Distinction (VG).
+**Student:** Amanda Kjaergaard
 
 ## How to play
 
-- Controls:
+- **Controls:**
 	Movement: W, A, S, D or arrow keys
 	Bomb: Spacebar
-	Restart:
-	OTHER EXTENSIONS HERE!!!!!!!!!!!!!
+	Restart: R
 	Exit game: Esc or Q
-- **Objective and rules:** [how to win/lose; which result wins if both happen together; any extension rules needed to understand the game]
-- **Configurations / demo setup:** [how to select gameplay/stress configurations and use any special setup or debug keys; write “default” where appropriate]
+- **Objective and rules:** 
+	How to win: Kill 5 enemies
+	You lose if: Time runs out or you die by taking damage from an enemy or your own bombs, you have 3 health
+	If you get both the win and lose condition at the same time you will lose since the game registers the lose condition first. 
+	The game has no extension rules.
+- **Configurations / demo setup:** 
+	How to select gameplay/stress configurations: The game has no special configurations or stress tests.
 
 ## Features and validation
 
-(delete this pre-amble before submitting the assignment) Complete the five required features and three extensions of your choice. For each row, document **at least one useful check: what you tested, what you observed, and how the result compares with the expected behaviour**. One or two sentences per feature are enough. Choose a check that could reveal a mistake, such as a boundary case or interaction.
-
-Use the practical checks in the assignment to validate the acceptance conditions during development; this table is a small sample of that work. Manual play in a small, repeatable setup is sufficient. You can also use a debugger, temporary logging, or small scenarios set up in code. Screenshots, recordings, automated tests etc are welcome, but not required. Be ready to explain the relevant rules in your code.
-
 | Feature | Check, observed result, and expected behaviour |
 | --- | --- |
-| 1. Player damage and death | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 2. Round states and objective | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 3. Safe restart | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 4. Solid bombs with owner escape | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 5. Blast-range pickup | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| [# and name of chosen extension 1] | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| [# and name of chosen extension 2] | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| [# and name of chosen extension 3] | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| 1. Player damage and death | Tested by showing player health diagnostics on screen, making sure the health went down when hit by an enemy bomb or your own bomb, observing that the health decreased once for every bomb hit, if getting hit twice the code should register it as 2 damage, it matched the expected behaviour. |
+| 2. Round states and objective | Tested by completing a round and ensuring the correct state is displayed, verifying that the objective is properly tracked and updated by showing diagnostics and text when winning/losing, it matched the expected behaviour but the structure needs refinement since winning updates during the next frame. |
+| 3. Safe restart | Tested by restarting the game multiple times and ensuring all state is properly cleared, observing that no old explosions or leftover game objects appear, it matched the expected behaviour. |
+| 4. Solid bombs with owner escape | Tested by placing a bomb and then moving away from it and then back towards it, ensuring both players and enemies can leave their own bomb but then no one can enter the bombs, it matched the expected behaviour. |
+| 5. Blast-range pickup | Tested by collecting the blast range power-up and verifying that the explosion radius increases, observing that the visual representation of the blast area expands and showing diagnostics, it matched the expected behaviour. |
+| 6. A second enemy behaviour: Enemies can plant bombs | Tested by observing enemy behaviour whilst in playing game state, ensuring they place bombs "randomly", it matched the expected behaviour. |
+| 7. Multiple bombs | Tested by placing multiple bombs in close proximity and observing if thats possible, making sure they explode seperatley and affect the environment as intended, it matched the expected behaviour. |
+| 8. Bomb chain reaction | Tested by setting off two bombs and observing the resulting chain of explosions (since i'd already made the multipl bomb code this was easily tested), making sure the damage works correctly throughout the environment, first the bombs just never exploded but in the end it matched the expected behaviour. |
 
-Example: “I ended a round with live bombs and restarted three times to check that old-round state was cleared. No old explosions appeared, and bomb capacity reset each time.” Report your actual results, including any failures or remaining limitations; stating that something “works” does not describe a check.
-
-**Known issues:** [remaining problems and how to encounter them, or “None known after testing”]
+**Known issues:** 
+	The win condition isn't being processed until next frame.
+	Although this makes sure there won't be a conflict between the win and lose condition, it is not ideal and should be fixed.
+	It has a short delay that makes the game feel unresponsive and can be confusing to the player.
+	Updating the logic with game states and the update_game_state function more would solve this.
 
 ## Sources and assistance
 
 This project builds on the shared Kotte foundations.
 
-[Briefly identify meaningful external code/resources, discussion or collaboration, and AI assistance. Link to sources where relevant, say what they contributed, and explain what you checked yourself. State “None beyond the course material” if applicable. No prompt transcript or activity diary is needed. Retain required licence/attribution notices.]
-
-## Architectural investigation — VG only
-
-Delete this section for a G submission. For VG, pose a focused engineering question about one decision in your implementation, investigate it, and draw a conclusion from evidence. Documenting the explanation already required for G is not enough. Aim for half a page to one page, excluding small tables, diagrams, or code excerpts. You can use the same decision in your presentation too.
-
-### Decision
-
-[State the question you are investigating and the implementation decision it concerns. Describe your current approach and a plausible alternative. Identify the relevant code. You do not need to implement the alternative.]
-
-### Method
-
-[How did you investigate the decision? Give enough detail to reproduce the key observation: setup, input, configuration/seed, and the test, trace, debugger inspection, or other method used.]
-
-### Evidence
-
-[What did you actually observe in your game? Include the relevant result or a small excerpt, table, or link to supporting material.]
-
-### Interpretation
-
-[Explain why it happened using the relevant code or architecture. Analyse at least one edge case, failure, defect, limitation, or trade-off illustrated by the investigation. Discuss relevant consequences for correctness, maintainability, performance, and/or scalability; you do not need to cover all four.]
-
-### Conclusion
-
-[When is your approach appropriate, what limits it, and when might an alternative become preferable? Base the conclusion on your evidence. Confirming that the current approach is suitable is a valid result.]
-
-<!-- Submission: commit and push this README with your source to GitHub or the internal Gitea server. Submit the final commit link and a runnable Release ZIP from that version in Studium. Ensure the teacher can access the repository throughout assessment. -->
+If not understanding something, I have used AI (ChatGPT) assistance to clarify and explain concepts. VisualStudios built in CoPilot was also used to help with code completion and suggestions. I have not used any other sources or assistance.
