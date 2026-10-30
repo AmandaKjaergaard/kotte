@@ -705,6 +705,9 @@ namespace kotte
         diagnostics = std::format("Current GameState: {}", game_state_to_string(game_state_.current_state));
         DrawText(diagnostics.c_str(), 10, 202, 20, RAYWHITE);
 
+        diagnostics = std::format("Current blast range: {}", player().player_state->bomb_blast_range_);
+        DrawText(diagnostics.c_str(), 10, 226, 20, RAYWHITE);
+
         if (player().player_state->is_dead && game_state_.current_state == GameState::Lost) {  
             DrawText("Game Over!", window_.width() / 2 - 300, window_.height() / 2, 130, RED);
         }
