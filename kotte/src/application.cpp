@@ -262,6 +262,8 @@ namespace kotte
         const Rectangle new_world_bounds = entity_world_bounds(player_entity);
         spatial_grid_.update(player_handle_, old_world_bounds, new_world_bounds);
 
+        update_bomb_owner_exit_state(player_handle_);
+
         collect_powerups();
     }
 
@@ -328,6 +330,33 @@ namespace kotte
 
             // Synchronize this accepted move before the next enemy query.
             spatial_grid_.update(enemy_handle, old_world_bounds, new_world_bounds);
+
+            update_bomb_owner_exit_state(enemy_handle);
+        }
+    }
+
+    void Application::update_bomb_owner_exit_state(EntityHandle owner) {
+        Entity* owner_entity = entities_.try_get(owner);
+        if (owner_entity == nullptr) {
+            return;
+        }
+
+        const Rectangle owner_bounds = entity_collision_bounds(*owner_entity);
+
+        for (const EntityHandle bomb_handle : active_bomb_handles_) {
+            Entity* bomb_entity = entities_.try_get(bomb_handle);
+            if (bomb_entity == nullptr || !bomb_entity->bomb_state.has_value()) {
+                continue;
+            }
+            BombState& bomb_state = *bomb_entity->bomb_state;
+            
+            if (bomb_state.owner != owner) {
+                continue;
+            }
+            
+            if (!CheckCollisionRecs(owner_bounds, entity_collision_bounds(*bomb_entity))) {
+                bomb_state.owner_has_left = true;
+            }
         }
     }
 
@@ -665,7 +694,7 @@ namespace kotte
             "world: {} x {} tiles | {} total", map_.width(), map_.height(), map_.tile_count());
         DrawText(diagnostics.c_str(), 10, window_.height() - 54, 20, RAYWHITE);
 
-        DrawText("move: WASD/arrows | bomb: Space | quit: Q/Escape", 10, window_.height() - 30, 20, RAYWHITE);
+        DrawText("move: WASD/arrows | bomb: Space | quit: Q/Escape | restart: R, objective: Kill 5 enemies before time runs out/you die", 10, window_.height() - 30, 20, RAYWHITE);
 
         diagnostics = std::format("Player health: {}", player().player_state->health);
         DrawText(diagnostics.c_str(), 10, 130, 20, RAYWHITE);
@@ -861,7 +890,8 @@ namespace kotte
 
             if (candidate->kind == EntityKind::bomb 
                 && candidate->bomb_state.has_value()
-                && candidate->bomb_state->owner == moving_entity_handle) {
+                && candidate->bomb_state->owner == moving_entity_handle 
+                && !candidate->bomb_state->owner_has_left) {
                 // The owner of a bomb can move through it until the fuse expires.
                 continue;
             }
